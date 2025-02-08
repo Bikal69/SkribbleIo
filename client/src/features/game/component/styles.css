@@ -1,0 +1,16 @@
+.userList{
+    background-color: aqua;
+    height: 100%;
+    width: 17%;
+}
+.messageList{
+    background-color: aqua;
+    height: 100%;
+    width: 17%;
+}
+#drawingCanvas{
+    width:66%;
+    height: 99%;
+    background-color: aliceblue;
+    border:5px solid black ;
+}
