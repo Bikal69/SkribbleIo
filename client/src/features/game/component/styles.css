@@ -1,7 +1,8 @@
 .userList{
     background-color: aqua;
-    height: 100%;
-    width: 17%;
+    height: 80%;
+    width: 100%;
+    flex-grow: 1;
 }
 .messageList{
     background-color: aqua;
@@ -10,7 +11,12 @@
 }
 #drawingCanvas{
     width:66%;
-    height: 99%;
+    height: 98%;
     background-color: aliceblue;
     border:5px solid black ;
+}
+.game-state{
+    width: 100%;
+    height:15%;
+    background-color: bisque;
 }

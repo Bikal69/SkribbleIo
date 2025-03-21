@@ -1,15 +1,17 @@
 import "./styles.css";
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 
-const UserList = () => {
+const UserList = ({socket,currentRoomId,currentPlayer,players}) => {
+  console.log('currentplayer',currentPlayer)
   return (
     <div className="userList">
       <ul>
-        <li>Item 1</li>
-        <li>Item 2</li>
+      {players?.map((player)=>(
+          <li key={player.id}>{currentPlayer.username===player.username?(<span style={{display:'inline-flex',flexDirection:"row",flexShrink:0}}><b style={{color:"red"}}>YOU-</b><p>{currentPlayer.username}</p></span>):player.username}</li>
+        ))}
       </ul>
+
     </div>
   )
 }
-
 export default UserList

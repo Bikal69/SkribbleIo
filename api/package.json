@@ -1,16 +1,22 @@
 {
   "name": "skribble_api",
+  "type": "module",
   "version": "1.0.0",
   "description": "skribble app api for backend",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start":"cls && nodemon index.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "express": "^4.21.2",
     "mongoose": "^8.9.6",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "unique-username-generator": "^1.4.0",
+    "uuid": "^11.1.0"
   }
 }
