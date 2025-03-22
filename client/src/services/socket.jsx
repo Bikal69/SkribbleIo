@@ -9,7 +9,7 @@ const SocketContext = createContext();
 const useSocket = () => useContext(SocketContext);
 
 const SocketProvider = ({ children }) => {
-  const socket = useMemo(()=>io('http://192.168.16.101:5000',{
+  const socket = useMemo(()=>io('http://192.168.16.100:5000',{
     query:{
       //here i am sending playerId in the form of object because if i just simply send playerId
       //..then even if null value is sent then it will be encoded as string in http but not object because of json

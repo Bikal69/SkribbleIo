@@ -1,8 +1,7 @@
 import {v4 as uuidv4} from 'uuid';
 import {wordHider} from '../helpers/gameHelper.js';
 import GameRound from './GameRound.js'
-const MAX_PLAYERS = 3;
-const MIN_PLAYERS=2;
+import config  from '../config/gameConfig.js'
 class GameRoom {
 constructor(io,hostId){
     this.id=uuidv4();
@@ -17,7 +16,7 @@ constructor(io,hostId){
     this.hostId=hostId;
 }
 isFull(){
-    return this.players.length>=MAX_PLAYERS;
+    return this.players.length>=config.MAX_PLAYERS_PER_ROOM;
 
 };
 getArtist(){
@@ -28,10 +27,16 @@ return this.players.findIndex((player)=>player.id===user.id)
 }
 addPlayer(user){
     if(user){
-        if(this.isFull()){console.log('no. of players in room exceeded')}
+        if(this.isFull()){
+            console.log('no. of players in room exceeded')
+            return false;
+        }
         const alreadyExistsIndex=this.players.findIndex((player)=>player.id===user.id);
         if(alreadyExistsIndex!==-1){
-            this.players[alreadyExistsIndex]=user;
+            // This is a reconnect - update the socket but maintain other player data
+            const existingPlayer = this.players[alreadyExistsIndex];
+            existingPlayer.socketId = user.socketId;
+            existingPlayer.socket = user.socket;
         }else{
             this.players.push(user);
         }
@@ -41,13 +46,15 @@ addPlayer(user){
             message:`User:${user.username} Joined the Game!`},
             [user]
         );
+        return true;
     }else{
         throw new Error('please enter user to add');
+        return false;
     }
     }
 removePlayer(user){
 this.players=this.players.filter((player)=>player.id!==user.id);
-this.emitEvent('PLAYER-LEFT',user.getUserInfo(),[user.socketId]);
+this.emitEvent('PLAYER-LEFT',user.getUserInfo());
 this.broadcastChatMessage({
     type:'bad',
     message:`User:${user.username} left The Game!`
@@ -63,8 +70,10 @@ getRoundInfo(){
     if(!this.round){
         throw new Error('oops the round does not exist');
     }else{
+        console.log('sending chats:',this.round.chats)
         return {
             artistId:this.getArtist().id,
+            drawingState:this.round.drawingState,
             roundNumber:this.round.roundNumber,
             roundTime:this.round.roundTime,
             chats:this.round.chats,
@@ -83,11 +92,11 @@ endGame(){
     if(this.endRoundTimeout){
         clearTimeout(this.endRoundTimeout);
     }
+    this.endRoundTimeout=null;
     this.emitEvent('GAME-END');
     this.GameFinished=true;
     this.round=null;
     this.artistIndex=0;
-    this.endRoundTimeout=null;
     this.players=[];
 };
 startRound(){
@@ -98,14 +107,15 @@ startRound(){
     this.emitEvent('ROUND-START',{
         ...roundInfo,
         wordToGuess:wordHider(roundInfo.wordToGuess)
-    },[this.getArtist()?.id]);//don't emit this to the artist user
-    this.getArtist()?.socket.emit('ROUND-START-ARTIST',roundInfo.wordToGuess);//emit the full word to artist without hiding
+    },[this.getArtist()]);//don't emit this to the artist user
+    this.getArtist()?.socket.emit('ROUND-START-ARTIST',roundInfo);//emit the full word to artist without hiding
     this.broadcastChatMessage({
         type:'alert',
         message:`${this.getArtist()?.username} turn's to draw!`
     });
     if (this.endRoundTimeout) {
         clearTimeout(this.endRoundTimeout);
+        this.endRoundTimeout=null;
     }
     this.endRoundTimeout=setTimeout(()=>{
         this.endRound();

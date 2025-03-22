@@ -1,6 +1,6 @@
 import React from 'react'
 import { useState,useRef,useEffect } from 'react'
-const DrawingBoard = ({socket,currentRoomId,playerId,artistId}) => {
+const DrawingBoard = ({socket,currentRoomId,playerId,artistId,missedDrawingState}) => {
   const canvasRef=useRef(null);
   const contextRef=useRef(null);
   const [isDrawing,setIsDrawing]=useState(false);//for knowing if current user is drawing or not
@@ -56,6 +56,18 @@ const DrawingBoard = ({socket,currentRoomId,playerId,artistId}) => {
       context.lineWidth = 5;
       // Store the context for use in event handlers.
       contextRef.current = context;
+
+  if(missedDrawingState&&missedDrawingState.length>0){
+    missedDrawingState.forEach((state) => {
+      if(state['moveTo']){
+        handleStartDrawing(state['moveTo']);
+      }else if(state['lineTo']){
+        handleDrawing(state['lineTo'])
+      }else if(state['closePath']){
+        handleFinishDrawing()
+      }
+    });
+  }
 
   socket.on('START-DRAWING',(coordinateData)=>{
     handleStartDrawing(coordinateData)

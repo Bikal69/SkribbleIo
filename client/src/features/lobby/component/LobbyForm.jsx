@@ -4,31 +4,11 @@ import { useAsyncError, useNavigate } from "react-router-dom";
 import {} from '@utils/utils.js'
 import { storage } from "../../../utils/utils.js";
 const LobbyForm = ({socket}) => {
-    const [playerName,setPlayerName]=useState('');
-    const [playerId,setPlayerId]=useState();
-    const navigate=useNavigate();
+const [playerName,setPlayerName]=useState(''); 
     //create room
     const createRoom=()=>{
         socket.emit('CREATE-ROOM');
     };
-    useEffect(()=>{
-      //events listners
-        socket.on('CREATED-ROOM',(roomIndex)=>{
-          console.log('game created:',roomIndex)
-          navigate(`/game/${roomIndex}`);
-        });
-        
-      socket.on('PLAYERID',(playerId)=>{
-        console.log('playerid received:',playerId)
-        storage.set('playerId',playerId)
-        setPlayerId(playerId);
-      })
-
-      return ()=>{
-        socket.off('CREATED-ROOM');
-      }
-
-    },[socket])
     
   return (
     <div className="container">

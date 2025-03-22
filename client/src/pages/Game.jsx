@@ -4,10 +4,9 @@ import MessageList from "../features/game/component/MessageList.jsx"
 import {useParams} from 'react-router-dom';
 import {useSocket} from "../services/socket.jsx";
 import './game.css'
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import {storage} from '../utils/utils.js'
 import GameState from "../features/game/component/GameState.jsx";
-import {useSocketEvents} from '../hooks/useSocketEvents.jsx'
 const Game = () => {
 const {socket,socketReady}=useSocket();
   console.log('soket:',socket.id)
@@ -19,9 +18,8 @@ const [roundInfo,setRoundInfo]=useState(null);
 const [timer,setTimer]=useState(null);
 const [messages,setMessages]=useState([]);
 const timerInterval=useRef(null);
-console.log('timer:',timer);
-console.log('roundInfo:',roundInfo)
-const handlePlayerJoined = ({id:joinedPlayerId,username,isHost,score}) => {
+function handlePlayerJoined({id:joinedPlayerId,username,isHost,score})  {
+  console.log('timer interval:',timerInterval.current)
   setPlayers((prevPlayers)=>{
     if(prevPlayers?.some((player)=>player.id===joinedPlayerId)){
       return prevPlayers;
@@ -32,45 +30,47 @@ const handlePlayerJoined = ({id:joinedPlayerId,username,isHost,score}) => {
   })
 };
 
-const handlePlayerDisconnected = ({id}) => {
+function handlePlayerDisconnected({id})  {
   console.log('player left:',id)
   setPlayers((prevPlayers) =>
-    prevPlayers.filter((player) => player.id !== id)
+    (prevPlayers.filter((player) => player.id !== id))
 );
 };
-const handleRoundStart=(roundInfo)=>{
+function handleRoundStart(roundInfo){
   console.log('round started:',roundInfo)
   setRoundInfo(roundInfo);
-  const {roundTime,startTime}=roundInfo;
-  const timeDifference=Math.round((new Date().getTime() - startTime)/1000);
-  console.log('timeDiff is:',timeDifference);
-  setTimer(roundTime-timeDifference);
   if(timerInterval.current){
     clearInterval(timerInterval.current);
+    timerInterval.current=null;
   }
-timerInterval.current=setInterval(()=>{
-      setTimer(prevTime => prevTime > 0 ? prevTime - 1 : 0);
-  },1000);
+  const {roundTime,startTime}=roundInfo;
+  const timeDifference=Math.max(0,Math.round((new Date().getTime() - startTime)/1000));
+  console.log('timeDiff is:',timeDifference);
+  setTimer(roundTime-timeDifference);
+  console.log('round-diff:',roundTime-timeDifference)
+    timerInterval.current = setInterval(() => {
+      console.log('from setinterval')
+      setTimer((prevTime) => {
+        console.log('prevTime is:',prevTime)
+        // Stop the interval when timer reaches 0
+        if (prevTime <= 1) {
+          clearInterval(timerInterval.current);
+          timerInterval.current = null;
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 1000);
+    console.log('from roundStart:tiemr ',timerInterval.current)
 }
-const handleChatMsg=({type,sender,message})=>{
+function handleChatMsg({type,sender,message}){
   console.log('message received')
   setMessages((prevMessages)=>[...prevMessages,{sender,message}]);
 };
-
-useEffect(() => {
-
-  if(!socketReady) return;
-    console.log("joined room:", joinedRoom)
-    if(!joinedRoom&&currentPlayer.id){
-      console.log('emitting join-room')
-      socket.emit('JOIN-ROOM',room_id);
-    }
-
-}, [currentPlayer?.id, joinedRoom, socketReady, socket])
-
-useEffect(()=>{
-  //event handlers for events
 const eventHandlers = {
+  'PLAYERID':(playerId)=>{
+    storage.set('playerId',playerId);
+  },
   'PLAYER-JOINED': handlePlayerJoined,
   'PLAYER-LEFT': handlePlayerDisconnected,
   'PLAYERS-LIST': (players) => {
@@ -88,8 +88,8 @@ const eventHandlers = {
   'GAME-STARTED':()=>{},
   'GAME-END':()=>{},
   'ROUND-START':handleRoundStart,
-  'ROUND-START-ARTIST':(wordToDraw)=>{
-   setRoundInfo((prevInfo)=>({...prevInfo,wordToGuess:wordToDraw}));
+  'ROUND-START-ARTIST':(roundInfo)=>{
+    handleRoundStart(roundInfo);
   },
   'WORD-REVEAL':(word)=>{
     console.log('wordREveal:',word)
@@ -105,34 +105,57 @@ const eventHandlers = {
     setRoundInfo((prevInfo)=>({...prevInfo,isActive:false}));
   },
   'ROUND-INFO':(roundInfoFromServer)=>{
-  console.log('round info',roundInfoFromServer);
-  const{chats,...roundInfo}=roundInfoFromServer;
-  setRoundInfo(roundInfo);
-  setMessages((prevMessages)=>[...prevMessages,chats]);
+    const{chats,...roundInfo}=roundInfoFromServer;
+    console.log('round info from server:',roundInfo);
+    handleRoundStart(roundInfo);
+    setMessages((prevMessages)=>[...prevMessages,...chats]);
   },
   'ROUND-SCORES':()=>{
-    clearInterval(timerInterval.current);
+    
   },
   'TOTAL-SCORES':()=>{
   
-  }
-  };
-useSocketEvents(socket,socketReady,eventHandlers);
-// Cleanup the event listeners when the component unmounts
-  return () => {
-    if(timerInterval.current){
-      clearInterval(timerInterval.current)
+  },
+  // 'START-DRAWING':handleStartDrawing,
+  // 'DRAW':handleDrawing,
+  // 'STOPPED-DRAWING':handleFinishDrawing
+}
+useEffect(() => {
+
+  if(!socketReady) return;
+    console.log("joined room:", joinedRoom)
+    if(!joinedRoom){
+      console.log('emitting join-room')
+      socket.emit('JOIN-ROOM',room_id);
     }
 
-  };
-},[socket,socketReady]);
+  return ()=>{
+  
+  }
+
+}, [currentPlayer?.id, joinedRoom, socketReady, socket]);
+useEffect(()=>{
+  Object.entries(eventHandlers).forEach(([event,handler])=>{
+      socket.on(event,handler);
+  });
+  return ()=>{
+      Object.entries(eventHandlers).forEach(([event,handler])=>{
+          socket.off(event);
+      });
+      if(timerInterval.current){
+        clearInterval(timerInterval.current)
+        timerInterval.current=null;
+      }
+  }
+  },[socket,socketReady])
+
   return joinedRoom?(
     <div className="game-page">
       <div className="left-col">
         <GameState timer={timer} roundInfo={roundInfo}/>
         <UserList socket={socket} currentRoomId={room_id} currentPlayer={currentPlayer} players={players}/>
       </div>
-        <DrawingBoard socket={socket} currentRoomId={room_id} playerId={currentPlayer.id} artistId={roundInfo?.artistId}/>
+        <DrawingBoard socket={socket} currentRoomId={room_id} playerId={currentPlayer.id} artistId={roundInfo?.artistId} missedDrawingState={roundInfo?.drawingState}/>
         <MessageList socket={socket} currentRoomId={room_id} currentPlayer={currentPlayer} roundStarted={roundInfo?roundInfo.isActive:false} messages={messages}/>
     </div>
   ):(<p>Oops the roomId is invalid!</p>)

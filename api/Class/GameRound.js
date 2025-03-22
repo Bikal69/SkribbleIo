@@ -1,11 +1,12 @@
+import config from "../config/gameConfig.js";
 const WORDS = ['cat', 'dog', 'house', 'tree', 'car', 'book', 'computer'];
-const ROUND_TIME = 60;
 export default class GameRound{
 constructor(roundNumber){
     this.roundNumber=roundNumber;
-    this.roundTime=30;
-    this.roundDelay=5;
+    this.roundTime=config.ROUND_TIME;
+    this.roundDelay=config.NEXT_ROUND_DELAY;
     this.chats=[];
+    this.drawingState=[];
     this.wordToGuess=this.pickRandomWords();
     this.isActive=true;
     this.startTime=new Date().getTime();

@@ -4,6 +4,8 @@ import usernameGenerator from '../utils/usernameGenerator.js'
 import GameRoom from '../Class/GameRoom.js'
 import GameRound from '../Class/GameRound.js'
 import User from '../Class/User.js';
+import config from '../config/gameConfig.js'
+import {wordHider} from '../helpers/gameHelper.js'
 const rooms=[];
 const socketEvents = (io) => {
   console.log('room length:',rooms.length)
@@ -11,14 +13,11 @@ const socketEvents = (io) => {
     console.log('sockets:',io.sockets.sockets.size)
     let {playerId}=socket.handshake.query?.data;
     if(!playerId){
-      console.log('playerId doesnot exists');
       playerId=uuidv4();
-      console.log('generated id is:',playerId);
+      socket.emit('PLAYERID',playerId)
     }
-    console.log('playerId from clinet',  playerId)
 
     const user=new User(playerId,socket,usernameGenerator());
-    socket.emit('PLAYERID',playerId)
   socket.data.roomIndex=-1;
   socket.data.room=null;
 
@@ -39,15 +38,18 @@ const socketEvents = (io) => {
         console.log('oops the roomIndex is wrong');
       }
       socket.data.room=rooms[roomIndexFromClient];
+      socket.data.roomIndex=roomIndexFromClient;
       socket.data.room.addPlayer(user);
       socket.join(socket.data.room.id);
       socket.emit('PLAYERS-LIST',socket.data.room.players.map((player)=>player.getUserInfo()));
       socket.emit('ROOM-JOINED',user.getUserInfo());
       if(socket.data.room.round?.isActive){
         console.log('round is active');
-        socket.emit('ROUND-INFO',socket.data.room.getRoundInfo());
+        const roundInfo=socket.data.room?.getRoundInfo();
+        roundInfo.wordToGuess=wordHider(roundInfo.wordToGuess);
+        socket.emit('ROUND-INFO',roundInfo);
       }
-      if(socket.data.room.players.length===2){
+      if(!socket.data.room.round?.isActive&&socket.data.room.players.length>=config.MIN_PLAYERS){
         socket.data.room.startGame();
       }
     });
@@ -57,18 +59,21 @@ const socketEvents = (io) => {
     socket.on('START-DRAWING', ({ offsetX, offsetY }) => {
       if (socket.data.room) {
         socket.to(socket.data.room.id).emit('START-DRAWING', { offsetX, offsetY });
+        socket.data.room.round?.drawingState.push({'moveTo':{offsetX,offsetY}});
       }
     });
 
     socket.on('DRAW', ({ offsetX, offsetY }) => {
       if (socket.data.room.id) {
         socket.to(socket.data.room.id).emit('DRAW', { offsetX, offsetY });
+        socket.data.room.round?.drawingState.push({'lineTo':{offsetX,offsetY}});
       }
     });
 
     socket.on('STOPPED-DRAWING', () => {
-      if (socket.data.room.id) {
-        socket.to(socket.data.room.id).emit('STOPPED-DRAWING');
+      if (socket.data.room?.id) {
+        socket.to(socket.data.room?.id).emit('STOPPED-DRAWING');
+        socket.data.room.round?.drawingState.push({'closePath':true});
       }
     });
 
@@ -76,7 +81,7 @@ const socketEvents = (io) => {
     socket.once('disconnect', async () => {
       console.log('roomindex:',socket.data.roomIndex)
       console.log('Client disconnected:', user.username);
-      if(socket.data.roomIndex&&socket.data.roomIndex!==-1){
+      if(socket.data.roomIndex!==-1){
         socket.data.room.removePlayer(user);
       }
     });

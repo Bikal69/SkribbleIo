@@ -9,7 +9,7 @@ const app=express();
 app.use(cookieParser())
 app.use(cors(
     {
-        origin:["http://localhost:5173","http://192.168.16.101:5173"],
+        origin:["http://localhost:5173","http://192.168.16.100:5173"],
         
     }
 ))
