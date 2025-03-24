@@ -4,13 +4,8 @@ import setupSocket from './config/socket.js';
 import cookieParser from 'cookie-parser'
 import cors from 'cors';
 const app=express();
-app.use(cookieParser())
-app.use(cors(
-    {
-        origin:["*"],
-        
-    }
-))
+app.use(cookieParser());
+app.use(cors());
 const server=http.createServer(app);
 // app.get('/getCookie',(req,res)=>{
 //     if(!req.cookies.cookie){
