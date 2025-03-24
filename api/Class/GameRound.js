@@ -1,5 +1,5 @@
 import config from "../config/gameConfig.js";
-const WORDS = ['cat', 'dog', 'house', 'tree', 'car', 'book', 'computer'];
+const WORDS = ['cat', 'dog', 'house', 'tree', 'car', 'book', 'computer','lado'];
 export default class GameRound{
 constructor(roundNumber){
     this.roundNumber=roundNumber;
@@ -15,6 +15,10 @@ constructor(roundNumber){
 pickRandomWords(){
  return WORDS[Math.floor(Math.random()*WORDS.length)]
 };
+assignUserScores(user,score){
+this.userScores.set(user.id,score);
+return true;
+}
 getUserScores(artistUserId ,users){
 const usersScoreFinal={};
 let correctGuess=0;
@@ -33,20 +37,31 @@ for(const user of users){
     return usersScoreFinal;
 }
 }
-didUserGuessed(userId){
-    return (this.userScores.get(userId));
+didUserGuessed(artistUserId,user){
+    if(user){
+        if(user.id===artistUserId){
+            return true;
+        }
+        return (this.userScores.get(user.id));
+    }
+    return false;
 }
 didAllUsersGuessed(artistUserId,users){
-    for(const user of users){
-        if(user.id===artistUserId){
-            continue;
-        }
+let yes;
+for (const user of users){
+    if(user.id===artistUserId){
+        continue;
+    }else{
         if(this.userScores.get(user.id)){
-            return true;
+            yes=true;
+            continue;
         }else{
-            return false;
+            yes=false;
+            break;
         }
     }
+}
+    return yes;
 }
 
 };

@@ -1,7 +1,7 @@
 import "./styles.css";
 import React, { useEffect, useState } from 'react'
 
-const UserList = ({socket,currentRoomId,currentPlayer,players}) => {
+const UserList = ({socket,currentRoomId,currentPlayer,players,guessedPlayersId}) => {
   console.log('currentplayer',currentPlayer)
   return (
     <div className="userList">

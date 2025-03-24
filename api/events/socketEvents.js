@@ -8,11 +8,10 @@ import config from '../config/gameConfig.js'
 import {wordHider} from '../helpers/gameHelper.js'
 const rooms=[];
 const socketEvents = (io) => {
-  console.log('room length:',rooms.length)
   io.on('connection', (socket) => {
-    console.log('sockets:',io.sockets.sockets.size)
-    let {playerId}=socket.handshake.query?.data;
-    if(!playerId){
+    let {playerId}=socket.handshake.query;
+    if(playerId==='null'||playerId==='undefined'){
+      console.log('no player id')  
       playerId=uuidv4();
       socket.emit('PLAYERID',playerId)
     }
@@ -82,15 +81,13 @@ const socketEvents = (io) => {
       console.log('roomindex:',socket.data.roomIndex)
       console.log('Client disconnected:', user.username);
       if(socket.data.roomIndex!==-1){
-        socket.data.room.removePlayer(user);
+        socket.data.room?.removePlayer(user);
       }
     });
 
     // ----- Chat Event -----
     socket.on('CHAT-MSG', async(message) => {
-      socket.data.room?.broadcastChatMessage(message);
-      socket.data.room.addChat(message);
-      return 
+      socket.data.room?.addChat(message);
     });
   });
 }

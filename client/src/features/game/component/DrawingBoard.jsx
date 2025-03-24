@@ -7,6 +7,7 @@ const DrawingBoard = ({socket,currentRoomId,playerId,artistId,missedDrawingState
   const isArtist = playerId === artistId;
    // A helper that works with either a native canvas event or an object with offsetX/Y.
    console.log('isDrawing:',playerId,artistId)
+   console.log('drawing state:',missedDrawingState);
    const getCoordinates = (eventOrCoords) => {
     // If we have a nativeEvent, extract from it; otherwise assume it already contains offsetX/Y.
     if (eventOrCoords && eventOrCoords.nativeEvent) {

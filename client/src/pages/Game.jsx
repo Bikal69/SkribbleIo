@@ -14,6 +14,7 @@ const {socket,socketReady}=useSocket();
   const [joinedRoom,setJoinedRoom]=useState(false);
 const [currentPlayer,setCurrentPlayer]=useState({id:storage.get('playerId')});
 const [players,setPlayers]=useState([]);
+const [guessedPlayersId,setGuessedPlayersId]=useState([]);
 const [roundInfo,setRoundInfo]=useState(null);
 const [timer,setTimer]=useState(null);
 const [messages,setMessages]=useState([]);
@@ -37,7 +38,7 @@ function handlePlayerDisconnected({id})  {
 );
 };
 function handleRoundStart(roundInfo){
-  console.log('round started:',roundInfo)
+  console.log('new round started',roundInfo)
   setRoundInfo(roundInfo);
   if(timerInterval.current){
     clearInterval(timerInterval.current);
@@ -63,9 +64,9 @@ function handleRoundStart(roundInfo){
     }, 1000);
     console.log('from roundStart:tiemr ',timerInterval.current)
 }
-function handleChatMsg({type,sender,message}){
-  console.log('message received')
-  setMessages((prevMessages)=>[...prevMessages,{sender,message}]);
+function handleChatMsg(chatMsg){
+  console.log('message received',chatMsg)
+  setMessages((prevMessages)=>[...prevMessages,chatMsg]);
 };
 const eventHandlers = {
   'PLAYERID':(playerId)=>{
@@ -102,6 +103,7 @@ const eventHandlers = {
       timerInterval.current=null;
     }
     setTimer(0);
+    setMessages([]);
     setRoundInfo((prevInfo)=>({...prevInfo,isActive:false}));
   },
   'ROUND-INFO':(roundInfoFromServer)=>{
@@ -110,8 +112,12 @@ const eventHandlers = {
     handleRoundStart(roundInfo);
     setMessages((prevMessages)=>[...prevMessages,...chats]);
   },
+  'WORD-GUESSED':(playerId)=>{
+    console.log('user guesed:')
+    setGuessedPlayersId((prevPlayersId)=>[...prevPlayersId,playerId]);
+  },
   'ROUND-SCORES':()=>{
-    
+
   },
   'TOTAL-SCORES':()=>{
   
@@ -153,7 +159,7 @@ useEffect(()=>{
     <div className="game-page">
       <div className="left-col">
         <GameState timer={timer} roundInfo={roundInfo}/>
-        <UserList socket={socket} currentRoomId={room_id} currentPlayer={currentPlayer} players={players}/>
+        <UserList socket={socket} currentRoomId={room_id} currentPlayer={currentPlayer} players={players} guessedPlayersId={guessedPlayersId}/>
       </div>
         <DrawingBoard socket={socket} currentRoomId={room_id} playerId={currentPlayer.id} artistId={roundInfo?.artistId} missedDrawingState={roundInfo?.drawingState}/>
         <MessageList socket={socket} currentRoomId={room_id} currentPlayer={currentPlayer} roundStarted={roundInfo?roundInfo.isActive:false} messages={messages}/>

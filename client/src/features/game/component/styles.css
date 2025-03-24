@@ -9,6 +9,11 @@
     height: 100%;
     width: 17%;
 }
+.messages{
+    height:90%;
+    overflow-y:auto;
+    overflow-x: hidden;
+}
 #drawingCanvas{
     width:66%;
     height: 98%;

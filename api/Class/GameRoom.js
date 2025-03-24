@@ -22,8 +22,8 @@ isFull(){
 getArtist(){
     return this.players[this.artistIndex];
 };
-findPlayerIndex(user){
-return this.players.findIndex((player)=>player.id===user.id)
+findPlayerIndex(userId){
+return this.players.findIndex((player)=>player.id===userId)
 }
 addPlayer(user){
     if(user){
@@ -43,13 +43,14 @@ addPlayer(user){
         this.emitEvent('PLAYER-JOINED',user.getUserInfo(),[user.socketId])
         this.broadcastChatMessage({
             type:'good',
+            id:Date.now()+Math.random(),
+            senderUsername:'server',
             message:`User:${user.username} Joined the Game!`},
             [user]
         );
         return true;
     }else{
         throw new Error('please enter user to add');
-        return false;
     }
     }
 removePlayer(user){
@@ -57,20 +58,47 @@ this.players=this.players.filter((player)=>player.id!==user.id);
 this.emitEvent('PLAYER-LEFT',user.getUserInfo());
 this.broadcastChatMessage({
     type:'bad',
+    id:Date.now()+Math.random(),
+    senderUsername:'server',
     message:`User:${user.username} left The Game!`
 })
 }
 addChat(chatMsg){
     if(chatMsg&&this.round){
-        this.round.chats.push(chatMsg);
-        return;
+        //if user already guessed then only send message to correct Guessers so that he don't share word
+        if(this.round.didUserGuessed(this.getArtist().id,this.players[this.findPlayerIndex(chatMsg.senderId)])){
+            this.broadcastMessageToCorrectGuessers(chatMsg);
+            return;
+        }
+        //if user guessed the correct word
+        if(chatMsg.message===this.getRoundInfo().wordToGuess){
+            this.round.assignUserScores(this.players[this.findPlayerIndex(chatMsg.senderId)],10);
+            this.broadcastMessageToCorrectGuessers(chatMsg);
+            this.emitEvent('WORD-GUESSED',chatMsg.senderId);
+            this.broadcastChatMessage({
+                type:'good',
+                id:Date.now()+Math.random(),
+                senderUsername:'server',
+                message:`User:${chatMsg.senderUsername} Guessed The Word!`
+            });
+            if(this.round.didAllUsersGuessed(this.getArtist().id,this.players)){
+                if(this.endRoundTimeout){
+                    clearTimeout(this.endRoundTimeout);
+                    this.endRoundTimeout=null;
+                }
+                this.endRound();
+                this.startNextRound();
+            }
+            return;
+      }
+      this.broadcastChatMessage(chatMsg);
+      this.round.chats.push(chatMsg);
     }
-}
+};
 getRoundInfo(){
     if(!this.round){
         throw new Error('oops the round does not exist');
     }else{
-        console.log('sending chats:',this.round.chats)
         return {
             artistId:this.getArtist().id,
             drawingState:this.round.drawingState,
@@ -111,6 +139,8 @@ startRound(){
     this.getArtist()?.socket.emit('ROUND-START-ARTIST',roundInfo);//emit the full word to artist without hiding
     this.broadcastChatMessage({
         type:'alert',
+        id:Date.now()+Math.random(),
+        senderUsername:'server',
         message:`${this.getArtist()?.username} turn's to draw!`
     });
     if (this.endRoundTimeout) {
@@ -131,7 +161,7 @@ endRound(){
     this.emitEvent('WORD-REVEAL',this.round.wordToGuess);
     this.emitEvent('ROUND-END');
     this.round.isActive=false;
-    const roundScores=this.round.getUserScores(this.getArtist(this.artistIndex),this.players);
+    const roundScores=this.round.getUserScores(this.getArtist(this.artistIndex).id,this.players);
     this.emitEvent('ROUND-SCORES',roundScores);
     for(const player of this.players){
         player.score+=roundScores[player.id]
@@ -161,9 +191,10 @@ broadcastChatMessage(message,excludedUsers=null){
 this.emitEvent('CHAT-MSG',message,excludedUsers);
 }
 broadcastMessageToCorrectGuessers(chatMessage){
-    const correctGuessers=this.players.filter((player)=>this.round?.didUserGuessed(player.id)).push(this.getArtist());
-    const correctGuessersSocketId=correctGuessers.map((player)=>player?.socketId);
-    this.io.to(correctGuessersSocketId).emit('CHAT-MSG',chatMessage);
+    const correctGuessers=this.players.filter((player)=>this.round?.didUserGuessed(this.getArtist().id,player));
+    correctGuessers.forEach((user)=>user.socket.emit('CHAT-MSG',chatMessage))
+    // const correctGuessersSocketId=correctGuessers.map((player)=>player?.socketId);
+    // this.io.to(correctGuessersSocketId.push(this.getArtist().socketId)).emit('CHAT-MSG',chatMessage);
 }
 getPlayersTotalScore(){
     let totalScores={};
