@@ -1,7 +1,5 @@
 import express from 'express';
-import { play } from './controller/play.controller.js';
 import http from 'http'
-import mongoose from 'mongoose';
 import setupSocket from './config/socket.js';
 import cookieParser from 'cookie-parser'
 import cors from 'cors';
@@ -14,8 +12,6 @@ app.use(cors(
     }
 ))
 const server=http.createServer(app);
-//database connection
-mongoose.connect('mongodb://127.0.0.1:27017/skribble').then(()=>console.log('successfully connected to database'));
 // app.get('/getCookie',(req,res)=>{
 //     if(!req.cookies.cookie){
 //         console.log('cookie doesnt exist');

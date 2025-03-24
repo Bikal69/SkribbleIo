@@ -1,6 +1,5 @@
 import { generateUsername } from 'unique-username-generator';
-import Game from '../model/game.model.js';
-import usernameGenerator from '../utils/usernameGenerator.js';
+import usernameGenerator from '../api/utils/usernameGenerator.js';
 export const createGame=async(playerId)=>{
     
     try{
