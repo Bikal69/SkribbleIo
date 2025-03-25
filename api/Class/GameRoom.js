@@ -2,6 +2,7 @@ import {v4 as uuidv4} from 'uuid';
 import {wordHider} from '../helpers/gameHelper.js';
 import GameRound from './GameRound.js'
 import config  from '../config/gameConfig.js'
+import {removeRoom} from '../dummyDB.js'
 class GameRoom {
 constructor(io,hostId){
     this.id=uuidv4();
@@ -120,12 +121,10 @@ endGame(){
     if(this.endRoundTimeout){
         clearTimeout(this.endRoundTimeout);
     }
-    this.endRoundTimeout=null;
     this.emitEvent('GAME-END');
+    this.endRoundTimeout=null;
     this.GameFinished=true;
-    this.round=null;
-    this.artistIndex=0;
-    this.players=[];
+    removeRoom(this.id);
 };
 startRound(){
     console.log('starting round')

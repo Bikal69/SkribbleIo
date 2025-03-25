@@ -4,7 +4,7 @@ import GameRoom from '../Class/GameRoom.js'
 import User from '../Class/User.js';
 import config from '../config/gameConfig.js'
 import {wordHider} from '../helpers/gameHelper.js'
-const rooms=[];
+import {rooms,findRoom} from '../dummyDB.js'
 const socketEvents = (io) => {
   io.on('connection', (socket) => {
     let {playerId}=socket.handshake.query;
@@ -25,28 +25,30 @@ const socketEvents = (io) => {
       rooms.push(socket.data.room);
       console.log('rooms',rooms.length)
       socket.data.roomIndex=rooms.length-1;
-      socket.emit('CREATED-ROOM',socket.data.roomIndex);
+      socket.emit('CREATED-ROOM',socket.data.room.id);
         console.log('room created')
     });
 
     // ----- Join Room -----
-    socket.on('JOIN-ROOM', async (roomIndexFromClient) => {
-      if(roomIndexFromClient>rooms.length-1){
+    socket.on('JOIN-ROOM', async (roomIdFromClient) => {
+      const roomIndex=findRoom(roomIdFromClient)
+      if(roomIndex>rooms.length-1||roomIndex===-1){
         console.log('oops the roomIndex is wrong');
+        return;
       }
-      socket.data.room=rooms[roomIndexFromClient];
-      socket.data.roomIndex=roomIndexFromClient;
+      socket.data.room=rooms[roomIndex];
+      socket.data.roomIndex=roomIndex;
       socket.data.room.addPlayer(user);
       socket.join(socket.data.room.id);
       socket.emit('PLAYERS-LIST',socket.data.room.players.map((player)=>player.getUserInfo()));
       socket.emit('ROOM-JOINED',user.getUserInfo());
-      if(socket.data.room.round?.isActive){
+      if(socket.data.room?.round?.isActive&&!socket.data.room?.GameFinished){
         console.log('round is active');
         const roundInfo=socket.data.room?.getRoundInfo();
         roundInfo.wordToGuess=wordHider(roundInfo.wordToGuess);
         socket.emit('ROUND-INFO',roundInfo);
       }
-      if(!socket.data.room.round?.isActive&&socket.data.room.players.length>=config.MIN_PLAYERS){
+      if(!socket.data.room?.GameStarted&&socket.data.room.players.length>=config.MIN_PLAYERS){
         socket.data.room.startGame();
       }
     });

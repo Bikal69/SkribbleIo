@@ -5,7 +5,7 @@ const io=new Server(httpServer,{
     pingInterval: 5000,   // More frequent pings
     connectTimeout: 10000, 
     cors:{
-        origin: ["https://skribbleio.onrender.com"], // Allow frontend URL
+        origin: ["http://localhost:5173"], // Allow frontend URL
         methods: ["GET", "POST"],
 }});
 (await import('../events/socketEvents.js')).default(io);

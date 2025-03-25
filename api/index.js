@@ -23,7 +23,7 @@ const server=http.createServer(app);
 // })
 //socket connection
 const io= await setupSocket(server);
-
+app.get('/hi',(req,res)=>res.json({message:"hey i got you "}));
 process.on('uncaughtException',(error)=>{
     console.log(`Error stack:${error.stack} and message:${error.message}`);
 })
